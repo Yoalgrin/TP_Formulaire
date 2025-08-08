@@ -1,2 +1,6 @@
 {
+  "require": {
+    "ext-mbstring": "*",
+    "ext-fileinfo": "*"
+  }
 }
