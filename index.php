@@ -22,9 +22,11 @@ function calculAge($date)
     $ajd = new DateTime();
     return $ajd->diff($anniv)->y;
 }
-// A décommenter pour tester
+// A décommenter pour tester le code
 //var_dump($_FILES);
 
+
+// trim appliqué à la valeur posté enlève les espaces éventuels avant et après (nettoyage manuel ciblé).
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     foreach ($data as $key => $val) {
         if ($key === 'ateliers') {
@@ -69,18 +71,30 @@ HTML;
             exit;
         }
     }
-    
-    // Validation
-    if (!preg_match('/^[\p{L} -]{2,50}$/u', $data['nom'])) $errors['nom'] = 'Nom invalide.';
-    if (!preg_match('/^[\p{L} -]{2,50}$/u', $data['prenom'])) $errors['prénom'] = 'Prenom invalide.';
-    if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) $errors['email'] = 'Email invalide.';
+    // 1. Nettoyage automatique global
+    $data['nom'] = filter_var($_POST['nom'] ?? '', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+    $data['prenom'] = filter_var($_POST['prenom'] ?? '', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+    $data['email'] = filter_var($_POST['email'] ?? '', FILTER_SANITIZE_EMAIL);
+    $data['telephone'] = filter_var($_POST['telephone'] ?? '', FILTER_SANITIZE_NUMBER_INT);
+    // 2. Validation
+
+    if (!preg_match('/^[\p{L} -]{2,50}$/u', $data ['nom'])) $errors['nom'] = 'Nom invalide.';
+    if (!preg_match('/^[\p{L} -]{2,50}$/u', $data['prenom'])) $errors['prenom'] = 'Prénom invalide.';
+    if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {$errors['email'] = 'Email invalide.';}
     if (!preg_match('/^0[6-7][0-9]{8}$/', $data['telephone'])) $errors['telephone'] = 'Téléphone invalide.';
     if (!$data['naissance']) {
         $errors['naissance'] = 'Date de naissance requise.';
     } else {
-        $age = calculAge($data['naissance']);
-        if ($age < 18) $errors['naissance'] = 'Vous devez avoir au moins 18 ans.';
+        $d = DateTime::createFromFormat('Y-m-d', $data['naissance']);
+        $valid = $d && $d->format('Y-m-d') === $data['naissance'];
+        if (!$valid) {
+            $errors['naissance'] = 'Date de naissance invalide.';
+        } else {
+            $age = calculAge($data['naissance']);
+            if ($age < 18) $errors['naissance'] = 'Vous devez avoir au moins 18 ans.';
+        }
     }
+
     if (!in_array($data['genre'], ['Homme', 'Femme', 'lgbtqia+'])) $errors['genre'] = 'Choix du genre requis.';
     if (empty($data['ateliers'])) $errors['ateliers'] = 'Choisissez au moins un atelier.';
     if (!in_array($data['participation'], ['Visiteur', 'Bénévole', 'Intervenant'])) $errors['participation'] = 'Type de participation invalide.';
@@ -199,7 +213,7 @@ HTML;
             <?php if (isset($errors['nom'])) echo "<p class='error'>{$errors['nom']}</p>"; ?><br><br>
 
             <label for="prénom">Prénom :</label>
-            <input type="text" name="prenom" id="prénom" value="<?= htmlspecialchars($data['prenom']) ?>">
+            <input type="text" name="prenom" id="prenom" value="<?= htmlspecialchars($data['prenom']) ?>">
             <?php if (isset($errors['prenom'])) echo "<p class='error'>{$errors['prenom']}</p>"; ?><br><br>
 
             <label for="email">Email :</label>
@@ -214,7 +228,6 @@ HTML;
             <input type="date" name="naissance" id="naissance" value="<?= htmlspecialchars($data['naissance']) ?>">
             <?php if (isset($errors['naissance'])) echo "<p class='error'>{$errors['naissance']}</p>"; ?><br><br>
         </div>
-
 
     </div>
 
@@ -235,14 +248,14 @@ HTML;
         <span class="libelle">Ateliers :</span>
         <div class="choix-radios">
             <label><input type="checkbox" name="ateliers[]"
-                          value="Barbe à papa au chocolat" <?= in_array('Barbe à papa au chocolat', $data['ateliers']) ? 'checked' : '' ?>>
-                Barbe à papa au chocolat</label>
+                          value="Cuisine" <?= in_array('Cuisine', $data['ateliers']) ? 'checked' : '' ?>>
+                Cuisine</label>
             <label><input type="checkbox" name="ateliers[]"
-                          value="Bien-être façon Rocco" <?= in_array('Bien-être façon Rocco', $data['ateliers']) ? 'checked' : '' ?>>
-                Bien-être façon Rocco</label>
+                          value="Bien-être" <?= in_array('Bien-être', $data['ateliers']) ? 'checked' : '' ?>>
+                Bien-être</label>
             <label><input type="checkbox" name="ateliers[]"
                           value="Informatique pour les nuls" <?= in_array('Informatique pour les nuls', $data['ateliers']) ? 'checked' : '' ?>>
-                Informatique pour les nuls</label>
+                Informatique</label>
         </div>
     </div>
     <?php if (isset($errors['ateliers'])) echo "<p class='error'>{$errors['ateliers']}</p>"; ?><br>
